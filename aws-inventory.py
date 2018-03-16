@@ -75,37 +75,19 @@ for region in regions:
                 key = tags.get('Key')
                 if key == 'Name':
                     Instancename = tags.get('Value')
-        if state == 'running':
-            instanceid = instance.get('InstanceId')
-            instancetype = instance.get('InstanceType')
-            launchtime = instance.get('LaunchTime')
-            Placement = instance.get('Placement').get('AvailabilityZone')
-            securityGroups = instance.get('SecurityGroups')
-            securityGroupsStr = ''
-            for idx, securityGroup in enumerate(securityGroups):
-                if idx > 0:
-                    securityGroupsStr += '; '
-                securityGroupsStr += securityGroup.get('GroupName')
-            writer.writerow([instanceid, state, Instancename, instancetype, launchtime, Placement, securityGroupsStr])
-            print([instanceid, state, Instancename, instancetype, launchtime, Placement, securityGroupsStr])
+        instanceid = instance.get('InstanceId')
+        instancetype = instance.get('InstanceType')
+        launchtime = instance.get('LaunchTime')
+        Placement = instance.get('Placement').get('AvailabilityZone')
+        securityGroups = instance.get('SecurityGroups')
+        securityGroupsStr = ''
+        for idx, securityGroup in enumerate(securityGroups):
+            if idx > 0:
+                securityGroupsStr += '; '
+            securityGroupsStr += securityGroup.get('GroupName')
+        writer.writerow([instanceid, state, Instancename, instancetype, launchtime, Placement, securityGroupsStr])
+        print([instanceid, state, Instancename, instancetype, launchtime, Placement, securityGroupsStr])
 
-    for instance in instances:
-        state = instance.get('State').get('Name')
-        Instancename = 'N/A'
-        if 'Tags' in instance:
-            for tags in instance.get('Tags'):
-                key = tags.get('Key')
-                if key == 'Name':
-                    Instancename = tags.get('Value')
-        if state == 'stopped':
-            instanceid = instance.get('InstanceId')
-            instancetype = instance.get('InstanceType')
-            launchtime = instance.get('LaunchTime')
-            Placement = instance.get('Placement').get('AvailabilityZone')
-            writer.writerow([
-                instanceid, state, Instancename, instancetype, launchtime, Placement])
-            print([
-                instanceid, state, Instancename, instancetype, launchtime, Placement])
 
     # boto3 library ec2 API describe volumes page
     # http://boto3.readthedocs.org/en/latest/reference/services/ec2.html#EC2.Client.describe_volumes
@@ -303,4 +285,6 @@ for region in regions:
             if len(policies) > 0:
                 policies += ";"
             policies += attached_user_policy.get('PolicyName')
+
 #        writer.writerow([user_name, policies])
+    csv_file.close()
