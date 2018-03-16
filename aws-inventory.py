@@ -6,7 +6,6 @@ from datetime import timedelta
 import csv
 from time import gmtime, strftime
 
-
 # Find current owner ID
 sts = boto3.client('sts')
 identity = sts.get_caller_identity()
@@ -18,12 +17,7 @@ LIST_SNAPSHOTS_WITHIN_THE_LAST_N_DAYS = 30
 # SES_SMTP_USER=os.environ["SES_SMTP_USER"]
 # SES_SMTP_PASSWORD=os.environ["SES_SMTP_PASSWORD"]
 # S3_INVENTORY_BUCKET=os.environ["S3_INVENTORY_BUCKET"]
-# MAIL_FROM=os.environ["MAIL_FROM"]
-# MAIL_TO=os.environ["MAIL_TO"]
 
-# Constants
-MAIL_SUBJECT = "AWS Inventory for " + ownerId
-MAIL_BODY = MAIL_SUBJECT + '\n'
 
 # EC2 connection beginning
 ec = boto3.client('ec2')
@@ -36,10 +30,10 @@ regions = ec.describe_regions().get('Regions', [])
 print(regions)
 for region in regions:
     reg = region.get('RegionName')
-    # get to the curren date
-    date_fmt = strftime("%Y_%m_%d", gmtime())
+    # get to the current date
+    date_fmt = strftime("%Y-%m-%d", gmtime())
     # Give your file path
-    filename = 'AWS_Resources_' + date_fmt + '_' + reg + '.csv'
+    filename = 'AWS Resources ' + date_fmt + ' ' + reg + '.csv'
     csv_file = open(filename, 'w', newline='')
     writer = csv.writer(csv_file, dialect='excel', delimiter=';', quoting=csv.QUOTE_ALL)
 
@@ -61,32 +55,31 @@ for region in regions:
         writer.writerow(['EC2 INSTANCE'] * 7)
         print(['EC2 INSTANCE'] * 7)
         writer.writerow(['InstanceID', 'Instance_State', 'InstanceName',
-                         'Instance_Type', 'LaunchTime', 'Instance_Placement',
-                         'SecurityGroupsStr'])
-        print(['InstanceID', 'Instance_State', 'InstanceName',
-                         'Instance_Type', 'LaunchTime', 'Instance_Placement',
+                         'Instance_Type', 'LaunchTime', 'Instance_Placement', 'PrivateIpAddress'
                          'SecurityGroupsStr'])
     #
     for instance in instances:
         state = instance.get('State').get('Name')
-        Instancename = 'N/A'
+        instanceName = 'N/A'
         if 'Tags' in instance:
             for tags in instance.get('Tags'):
                 key = tags.get('Key')
                 if key == 'Name':
-                    Instancename = tags.get('Value')
+                    instanceName = tags.get('Value')
         instanceid = instance.get('InstanceId')
         instancetype = instance.get('InstanceType')
         launchtime = instance.get('LaunchTime')
+        imageID = instance.get('ImageID')
+        keyName = instance.get('KeyName')
         Placement = instance.get('Placement').get('AvailabilityZone')
+        privateIpAddress = instance.get('PrivateIpAddress')
         securityGroups = instance.get('SecurityGroups')
         securityGroupsStr = ''
         for idx, securityGroup in enumerate(securityGroups):
             if idx > 0:
-                securityGroupsStr += '; '
+                securityGroupsStr += ',\n'
             securityGroupsStr += securityGroup.get('GroupName')
-        writer.writerow([instanceid, state, Instancename, instancetype, launchtime, Placement, securityGroupsStr])
-        print([instanceid, state, Instancename, instancetype, launchtime, Placement, securityGroupsStr])
+        writer.writerow([instanceid, state, instanceName, instancetype, imageID, keyName, launchtime, Placement, privateIpAddress, securityGroupsStr])
 
 
     # boto3 library ec2 API describe volumes page
@@ -179,7 +172,7 @@ for region in regions:
         ipRangesStr = ''
         for idx, ipRange in enumerate(ipRanges):
             if idx > 0:
-                ipRangesStr += '; '
+                ipRangesStr += ',\n'
             ipRangesStr += ipRange.get('CidrIp')
         writer.writerow([
             groupName, groupType, ipProtocol, fromPort, toPort, ipRangesStr])
@@ -277,14 +270,14 @@ for region in regions:
             UserName=user_name)["PolicyNames"]
         for user_policy in user_policies:
             if len(policies) > 0:
-                policies += ";"
+                policies += ",\n"
             policies += user_policy
         attached_user_policies = iam.list_attached_user_policies(UserName=user_name)[
             "AttachedPolicies"]
         for attached_user_policy in attached_user_policies:
             if len(policies) > 0:
-                policies += ";"
+                policies += ",\n"
             policies += attached_user_policy.get('PolicyName')
 
-#        writer.writerow([user_name, policies])
+    #        writer.writerow([user_name, policies])
     csv_file.close()
