@@ -52,18 +52,20 @@ for region in regions:
         ], [])
     instanceslist = len(instances)
     if instanceslist > 0:
-        writer.writerow(['EC2 INSTANCE'] * 7)
-        print(['EC2 INSTANCE'] * 7)
+        writer.writerow("")
+        writer.writerow('EC2 INSTANCE, ' + regname)
         writer.writerow(['InstanceID', 'Instance_State', 'InstanceName',
-                         'Instance_Type', 'LaunchTime', 'Instance_Placement', 'PrivateIpAddress'
-                         'SecurityGroupsStr'])
+                         'Instance_Type', 'ImageID','KeyName', 'LaunchTime', 'Instance_Placement', 'PrivateIpAddress'
+                         'SecurityGroupsStr','Tags'])
     #
     for instance in instances:
         state = instance.get('State').get('Name')
         instanceName = 'N/A'
+        tagsStr = ''
         if 'Tags' in instance:
             for tags in instance.get('Tags'):
                 key = tags.get('Key')
+                tagsStr += key + ': ' + tags.get('Value')
                 if key == 'Name':
                     instanceName = tags.get('Value')
         instanceid = instance.get('InstanceId')
@@ -79,7 +81,7 @@ for region in regions:
             if idx > 0:
                 securityGroupsStr += ',\n'
             securityGroupsStr += securityGroup.get('GroupName')
-        writer.writerow([instanceid, state, instanceName, instancetype, imageID, keyName, launchtime, Placement, privateIpAddress, securityGroupsStr])
+        writer.writerow([instanceid, state, instanceName, instancetype, imageID, keyName, launchtime, Placement, privateIpAddress, securityGroupsStr, tagsStr])
 
 
     # boto3 library ec2 API describe volumes page
@@ -92,7 +94,7 @@ for region in regions:
         ], [])
     volumeslist = len(volumes)
     if volumeslist > 0:
-        writer.writerow(['', '', '', ''])
+        writer.writerow("")
         writer.writerow(['EBS Volume', regname])
         writer.writerow(['VolumeId', 'InstanceId', 'AttachTime', 'State'])
 
@@ -118,7 +120,7 @@ for region in regions:
         timedelta_days = -int(LIST_SNAPSHOTS_WITHIN_THE_LAST_N_DAYS)
         if snapshot.get('StartTime') > datetime.now(tz_info) + timedelta(days=timedelta_days):
             if snapshots_counter == 0:
-                writer.writerow(['', '', '', '', ''])
+                writer.writerow("")
                 writer.writerow(['EC2 SNAPSHOT', regname])
                 writer.writerow([
                     'SnapshotId', 'VolumeId', 'StartTime', 'VolumeSize', 'Description'])
@@ -137,7 +139,7 @@ for region in regions:
     addresses = ec2con.describe_addresses().get('Addresses', [])
     addresseslist = len(addresses)
     if addresseslist > 0:
-        writer.writerow(['', '', '', '', ''])
+        writer.writerow("")
         writer.writerow(['EIPS INSTANCE', regname])
         writer.writerow(['PublicIp', 'AllocationId', 'Domain', 'InstanceId'])
 
@@ -191,7 +193,7 @@ for region in regions:
         ]
     ).get('SecurityGroups')
     if len(securityGroups) > 0:
-        writer.writerow(['', '', '', '', ''])
+        writer.writerow("")
         writer.writerow(['SEC GROUPS', regname])
         writer.writerow([
             'GroupName', 'GroupType', 'IpProtocol', 'FromPort', 'ToPort', 'IpRangesStr'])
@@ -217,7 +219,7 @@ for region in regions:
     )
     rdblist = len(rdb)
     if rdblist > 0:
-        writer.writerow(['', '', '', ''])
+        writer.writerow("")
         writer.writerow(['RDS INSTANCE', regname])
         writer.writerow([
             'DBInstanceIdentifier', 'DBInstanceStatus', 'DBName', 'DBInstanceClass'])
@@ -242,7 +244,7 @@ for region in regions:
     loadbalancerlist = len(loadbalancer)
     if loadbalancerlist > 0:
         writer.writerow(['ELB INSTANCE', regname])
-        writer.writerow(['LoadBalancerName', 'DNSName',
+        writer.writerow(['LoadBalancerName', 'DNSName', 'PublicIp',
                          'CanonicalHostedZoneName', 'CanonicalHostedZoneNameID'])
 
     for load in loadbalancer:
@@ -250,15 +252,16 @@ for region in regions:
         DNSName = load.get('DNSName')
         CanonicalHostedZoneName = load.get('CanonicalHostedZoneName')
         CanonicalHostedZoneNameID = load.get('CanonicalHostedZoneNameID')
+        publicIp = load.get('PublicIp')
         writer.writerow([
-            LoadBalancerName, DNSName, CanonicalHostedZoneName, CanonicalHostedZoneNameID])
+            LoadBalancerName, DNSName, CanonicalHostedZoneName, publicIp, CanonicalHostedZoneNameID])
 
     # IAM connection beginning
     iam = boto3.client('iam', region_name=reg)
 
     # boto3 library IAM API
     # http://boto3.readthedocs.io/en/latest/reference/services/iam.html
-    writer.writerow(['', '', '', ''])
+    writer.writerow("")
     writer.writerow(['IAM', regname])
     writer.writerow(['User', 'Policies'])
 
