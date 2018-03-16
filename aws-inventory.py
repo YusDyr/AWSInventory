@@ -65,7 +65,7 @@ for region in regions:
         if 'Tags' in instance:
             for tags in instance.get('Tags'):
                 key = tags.get('Key')
-                tagsStr += key + ': ' + tags.get('Value')
+                tagsStr += key + ': ' + tags.get('Value') + ",\n"
                 if key == 'Name':
                     instanceName = tags.get('Value')
         instanceid = instance.get('InstanceId')
