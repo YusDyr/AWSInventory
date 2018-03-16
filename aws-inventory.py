@@ -4,7 +4,22 @@ import boto3
 from datetime import datetime
 from datetime import timedelta
 import csv
+import sys
 from time import gmtime, strftime
+
+
+def flattenjson( b, delim ):
+    """https://stackoverflow.com/a/28246154"""
+    val = {}
+    for i in b.keys():
+        if isinstance( b[i], dict ):
+            get = flattenjson( b[i], delim )
+            for j in get.keys():
+                val[ i + delim + j ] = get[j]
+        else:
+            val[i] = b[i]
+
+    return val
 
 # Find current owner ID
 sts = boto3.client('sts')
@@ -26,7 +41,7 @@ s3 = boto3.resource('s3')
 
 # boto3 library ec2 API describe region page
 # http://boto3.readthedocs.org/en/latest/reference/services/ec2.html#EC2.Client.describe_regions
-regions = ec.describe_regions().get('Regions', [])
+regions = ec.describe_regions(RegionNames=['us-east-1']).get('Regions', [])
 print(regions)
 for region in regions:
     reg = region.get('RegionName')
@@ -52,6 +67,15 @@ for region in regions:
         ], [])
     instanceslist = len(instances)
     if instanceslist > 0:
+        instanceData = list(map(lambda x: flattenjson(x, "."), instances))
+        columns = [x for row in instanceData for x in row.keys()]
+        columns = list(set(columns))
+        for i_r in instanceData:
+            foo = list(map(lambda x: i_r.get(x, ""), columns))
+            writer.writerow(list(map(lambda x: i_r.get(x, ""), columns)))
+            print(list(map(lambda x: i_r.get(x, ""), columns)))
+        csv_file.close()
+        sys.exit()
         writer.writerow("")
         writer.writerow('EC2 INSTANCE, ' + regname)
         writer.writerow(['InstanceID', 'Instance_State', 'InstanceName',
@@ -284,3 +308,5 @@ for region in regions:
 
     #        writer.writerow([user_name, policies])
     csv_file.close()
+
+
